@@ -3,7 +3,6 @@
 import numpy as np
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.neighbors import KNeighborsClassifier
-from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import roc_auc_score, accuracy_score, precision_score, recall_score, f1_score
 from sklearn.preprocessing import StandardScaler
 
@@ -107,10 +106,10 @@ def compare_classical_models(data: ClassificationInput) -> BaselineComparisonRes
     scaled_train = scaler.fit_transform(x_train)
     scaled_test = scaler.transform(x_test)
 
-    logistic = LogisticRegression(max_iter=1000, random_state=42)
-    logistic.fit(scaled_train, y_train)
-    logistic_probs = logistic.predict_proba(scaled_test)[:, 1]
-    logistic_metrics = _get_metrics(y_test, logistic.predict(scaled_test), logistic_probs)
+    # The contract comparison must use the logistic classifier implemented
+    # with batch gradient descent, rather than sklearn LogisticRegression.
+    own_logistic = train_logistic_classifier(data)
+    logistic_metrics = _get_metrics(y_test, own_logistic.predictions, own_logistic.probabilities)
 
     tree = DecisionTreeClassifier(max_depth=5, random_state=42)
     tree.fit(x_train, y_train)
