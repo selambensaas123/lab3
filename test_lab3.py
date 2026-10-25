@@ -30,3 +30,16 @@ def test_baseline_metrics_are_valid():
     for metrics in [result.logistic_regression, result.decision_tree, result.knn]:
         assert 0 <= metrics.roc_auc <= 1
         assert 0 <= metrics.f1 <= 1
+
+
+def test_comparison_uses_own_logistic_model():
+    # On the same split, the contract must report our GD model metrics.
+    from linear_models import _get_metrics
+    x = np.arange(60, dtype=float).reshape(-1, 1)
+    y = (x[:, 0] > 29).astype(int)
+    data = ClassificationInput(x, y, x, y)
+    own = train_logistic_classifier(data)
+    result = compare_classical_models(data)
+    expected = _get_metrics(y, own.predictions, own.probabilities)
+    assert abs(result.logistic_regression.roc_auc - expected.roc_auc) < 1e-12
+    assert abs(result.logistic_regression.f1 - expected.f1) < 1e-12
