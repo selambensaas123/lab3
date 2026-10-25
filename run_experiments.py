@@ -7,6 +7,8 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 from sklearn.metrics import mean_squared_error
+from sklearn.linear_model import LogisticRegression
+from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import train_test_split
 
 from grader_contracts.linear_models import ClassificationInput, RegressionInput
@@ -35,11 +37,22 @@ def main():
     own = train_logistic_classifier(data)
     own_metrics = _get_metrics(cy_test, own.predictions, own.probabilities)
     other = compare_classical_models(data)
+    # Optional reference baseline: sklearn is used only outside the own-GD
+    # implementation and outside the required three-model comparison.
+    scaler = StandardScaler()
+    train_scaled = scaler.fit_transform(cx_train)
+    test_scaled = scaler.transform(cx_test)
+    sklearn_logistic = LogisticRegression(max_iter=1000, random_state=SEED)
+    sklearn_logistic.fit(train_scaled, cy_train)
+    reference_probabilities = sklearn_logistic.predict_proba(test_scaled)[:, 1]
+    reference_predictions = sklearn_logistic.predict(test_scaled)
+    reference_metrics = _get_metrics(cy_test, reference_predictions, reference_probabilities)
+    assert abs(own_metrics.roc_auc - other.logistic_regression.roc_auc) < 1e-12
     output = {
         'linear_regression': {'test_mse': mse},
         'classification': {
             'own_logistic': asdict(own_metrics),
-            'logistic_regression': asdict(other.logistic_regression),
+            'logistic_regression': asdict(reference_metrics),
             'decision_tree': asdict(other.decision_tree),
             'knn': asdict(other.knn),
         },
